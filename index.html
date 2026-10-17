@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f2eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Strick Tracker">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>Strick Tracker</title>
+  <style>
+    :root { color-scheme: light; --ink:#29251f; --muted:#777066; --paper:#f7f2eb; --card:#fffdf9; --accent:#526b5b; --accent-dark:#3d5144; --line:#e6ded2; --warn:#9a452f; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { max-width:520px; margin:0 auto; min-height:100dvh; padding:calc(18px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:16px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .eyebrow { font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); font-weight:700; }
+    h1 { font-size:29px; line-height:1.05; margin:5px 0 0; letter-spacing:-.04em; }
+    select, input, button { font:inherit; }
+    select { background:var(--card); border:1px solid var(--line); padding:10px 12px; border-radius:12px; max-width:150px; color:var(--ink); }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:22px; padding:20px; box-shadow:0 5px 20px #43351b08; }
+    .stats { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .label { font-size:13px; color:var(--muted); margin-bottom:9px; }
+    .number { font-size:54px; font-weight:750; letter-spacing:-.06em; line-height:1; font-variant-numeric:tabular-nums; }
+    .unit { color:var(--muted); font-size:13px; margin-top:7px; }
+    .cycle-card { display:flex; flex-direction:column; justify-content:space-between; min-height:150px; }
+    .cycle-line { display:flex; gap:5px; margin-top:15px; }
+    .dot { height:8px; border-radius:99px; flex:1; background:#e8e1d7; }
+    .dot.done { background:var(--accent); }
+    .status { margin-top:14px; min-height:20px; font-size:14px; font-weight:700; color:var(--accent-dark); }
+    .status.due { color:var(--warn); }
+    .main-button { width:100%; border:0; border-radius:18px; background:var(--accent); color:white; padding:21px 18px; font-weight:750; font-size:20px; box-shadow:0 5px 0 var(--accent-dark); cursor:pointer; }
+    .main-button:active { transform:translateY(3px); box-shadow:0 2px 0 var(--accent-dark); }
+    .controls { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .secondary { border:1px solid var(--line); border-radius:14px; padding:13px 10px; background:#fffdf9; color:var(--ink); font-weight:650; cursor:pointer; }
+    .section-title { font-size:15px; font-weight:750; margin:0 0 10px; }
+    .small-row { display:flex; align-items:center; gap:10px; }
+    .small-row label { flex:1; font-size:14px; color:var(--muted); }
+    .small-row input { width:76px; border:1px solid var(--line); border-radius:10px; padding:9px; background:white; color:var(--ink); text-align:center; }
+    .note { font-size:12px; line-height:1.5; color:var(--muted); }
+    .bottom { margin-top:auto; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .text-button { background:transparent; border:0; color:var(--muted); text-decoration:underline; text-underline-offset:3px; padding:8px 0; font-size:13px; cursor:pointer; }
+    .toast { min-height:22px; text-align:center; font-weight:700; color:var(--warn); }
+    @media (max-width:360px) { .number { font-size:46px; } h1 { font-size:26px; } main { padding-left:12px; padding-right:12px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <div class="eyebrow">Dein Strickbegleiter</div>
+      <h1>Strick Tracker <span aria-hidden="true">🧶</span></h1>
+    </div>
+    <select id="project" aria-label="Projekt auswählen">
+      <option value="hood">Sophie Hood</option>
+      <option value="scarf">Sophie Scarf</option>
+      <option value="custom">Eigenes Projekt</option>
+    </select>
+  </header>
+
+  <section class="stats">
+    <div class="card">
+      <div class="label">Gesamtreihen</div>
+      <div class="number" id="total">0</div>
+      <div class="unit">Reihen gestrickt</div>
+    </div>
+    <div class="card cycle-card">
+      <div>
+        <div class="label">Zyklus</div>
+        <div class="number"><span id="cycle">0</span><span style="font-size:24px;color:var(--muted)"> / <span id="intervalLabel">8</span></span></div>
+      </div>
+      <div>
+        <div class="cycle-line" id="cycleLine" aria-label="Zyklusfortschritt"></div>
+        <div class="status" id="status" aria-live="polite">Bereit für Reihe 1</div>
+      </div>
+    </div>
+  </section>
+
+  <button class="main-button" id="add">＋ Reihe fertig</button>
+  <div class="toast" id="toast" aria-live="polite"></div>
+
+  <section class="controls">
+    <button class="secondary" id="undo">↶ Reihe zurück</button>
+    <button class="secondary" id="resetCycle">↻ Zyklus neu starten</button>
+  </section>
+
+  <section class="card">
+    <div class="section-title">Zähleinstellungen</div>
+    <div class="small-row">
+      <label for="interval">Zykluslänge bis zur Zunahme</label>
+      <input id="interval" type="number" min="1" max="99" value="8" inputmode="numeric">
+    </div>
+    <p class="note">Der Gesamtzähler läuft weiter. Der Zyklus startet nach jeder Zunahme neu. Bei einem anderen Abschnitt kannst du die Zykluslänge ändern.</p>
+  </section>
+
+  <div class="bottom">
+    <span class="note">Speichert den Stand auf diesem Gerät.</span>
+    <button class="text-button" id="resetAll">Alles zurücksetzen</button>
+  </div>
+</main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const defaults = { hood:{total:0, cycle:0, interval:8}, scarf:{total:0, cycle:0, interval:8}, custom:{total:0, cycle:0, interval:8} };
+  let data = {};
+  try { data = JSON.parse(localStorage.getItem('strickTrackerV1') || '{}'); } catch(e) { data = {}; }
+  for (const key of Object.keys(defaults)) data[key] = {...defaults[key], ...(data[key] || {})};
+  let current = 'hood';
+  let toastTimer;
+  function save() { localStorage.setItem('strickTrackerV1', JSON.stringify(data)); }
+  function state() { return data[current]; }
+  function flash(message) {
+    $('toast').textContent = message;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $('toast').textContent = '', 2400);
+  }
+  function render() {
+    const s = state();
+    $('total').textContent = s.total;
+    $('cycle').textContent = s.cycle;
+    $('intervalLabel').textContent = s.interval;
+    $('interval').value = s.interval;
+    $('cycleLine').innerHTML = '';
+    for (let i=1;i<=Math.min(s.interval,30);i++) {
+      const dot = document.createElement('span');
+      dot.className = 'dot' + (i <= s.cycle ? ' done' : '');
+      $('cycleLine').appendChild(dot);
+    }
+    $('status').classList.toggle('due', s.cycle === 0 && s.total > 0);
+    if (s.total > 0 && s.cycle === 0) $('status').textContent = 'ZUNAHME JETZT';
+    else $('status').textContent = `${s.interval - s.cycle} ${s.interval - s.cycle === 1 ? 'Reihe' : 'Reihen'} bis zur Zunahme`;
+    $('project').value = current;
+    document.title = `${s.total} Reihen · Strick Tracker`;
+  }
+  $('add').addEventListener('click', () => {
+    const s = state();
+    s.total += 1;
+    s.cycle = (s.cycle + 1) % s.interval;
+    save(); render();
+    if (s.cycle === 0) flash('Zunahme jetzt! Danach einfach weiterzählen.');
+  });
+  $('undo').addEventListener('click', () => {
+    const s = state();
+    if (s.total <= 0) return flash('Noch keine Reihe gezählt.');
+    s.total -= 1;
+    s.cycle = (s.cycle - 1 + s.interval) % s.interval;
+    save(); render(); flash('Letzte Reihe zurückgenommen.');
+  });
+  $('resetCycle').addEventListener('click', () => {
+    state().cycle = 0; save(); render(); flash('Zyklus zurückgesetzt.');
+  });
+  $('resetAll').addEventListener('click', () => {
+    if (!confirm('Gesamtzähler und Zyklus dieses Projekts wirklich auf null setzen?')) return;
+    state().total = 0; state().cycle = 0; save(); render(); flash('Projektzähler zurückgesetzt.');
+  });
+  $('interval').addEventListener('change', () => {
+    let n = Number.parseInt($('interval').value,10);
+    if (!Number.isFinite(n)) n = 8;
+    n = Math.max(1, Math.min(99,n));
+    const s = state();
+    s.interval = n; s.cycle = s.cycle % n;
+    save(); render();
+  });
+  $('project').addEventListener('change', () => {
+    current = $('project').value; render();
+  });
+  render();
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "Strick Tracker",
+  "short_name": "Strick Tracker",
+  "description": "Ein einfacher Reihen und Zunahmenzähler für Strickprojekte.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f2eb",
+  "theme_color": "#f7f2eb",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
